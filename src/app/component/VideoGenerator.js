@@ -18,29 +18,170 @@ export default function VideoGenerator({
     setGenerationProgress(0);
 
     try {
-      // 시뮬레이션된 진행률 업데이트
-      const progressInterval = setInterval(() => {
-        setGenerationProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
-            return 100;
+      // Canvas 생성
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // 영상 해상도 설정 (16:9 비율)
+      const videoWidth = 1280;
+      const videoHeight = 720;
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
+
+      // MediaRecorder 설정
+      const stream = canvas.captureStream(30); // 30fps
+
+      // 브라우저 호환성을 위한 MIME 타입 선택
+      let mimeType = "video/webm;codecs=vp9";
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = "video/webm;codecs=vp8";
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = "video/webm";
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: mimeType,
+        videoBitsPerSecond: 2500000, // 2.5Mbps
+      });
+
+      const chunks = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        setGeneratedVideoUrl(url);
+        setGenerationProgress(100);
+      };
+
+      // 영상 녹화 시작
+      mediaRecorder.start();
+
+      // 이미지 로드 및 렌더링
+      const totalDuration = images.length * settings.duration;
+      const frameRate = 30;
+      const totalFrames = totalDuration * frameRate;
+      let currentFrame = 0;
+      let currentImageIndex = 0;
+      let imageStartFrame = 0;
+
+      // 이미지 프리로드
+      const loadedImages = await Promise.all(
+        images.map((img) => {
+          return new Promise((resolve) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.src = img.preview;
+          });
+        })
+      );
+
+      const renderFrame = () => {
+        // 배경을 검은색으로 클리어
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, videoWidth, videoHeight);
+
+        if (loadedImages.length > 0) {
+          const currentImage = loadedImages[currentImageIndex];
+          const imageDuration = settings.duration * frameRate;
+
+          // 이미지 크기 계산 (비율 유지)
+          const imageAspect = currentImage.width / currentImage.height;
+          const canvasAspect = videoWidth / videoHeight;
+
+          let drawWidth, drawHeight, drawX, drawY;
+
+          if (imageAspect > canvasAspect) {
+            // 이미지가 더 넓음
+            drawHeight = videoHeight;
+            drawWidth = drawHeight * imageAspect;
+            drawX = (videoWidth - drawWidth) / 2;
+            drawY = 0;
+          } else {
+            // 이미지가 더 높음
+            drawWidth = videoWidth;
+            drawHeight = drawWidth / imageAspect;
+            drawX = 0;
+            drawY = (videoHeight - drawHeight) / 2;
           }
-          return prev + Math.random() * 10;
-        });
-      }, 200);
 
-      // 실제 영상 생성 로직은 여기에 구현
-      // 현재는 시뮬레이션만 진행
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+          // 전환 효과 적용
+          const frameInImage = currentFrame - imageStartFrame;
+          const transitionFrames = Math.min(15, imageDuration * 0.1); // 0.5초 전환
 
-      clearInterval(progressInterval);
-      setGenerationProgress(100);
+          if (settings.transition === "fade") {
+            const opacity =
+              frameInImage < transitionFrames
+                ? frameInImage / transitionFrames
+                : 1;
+            ctx.globalAlpha = opacity;
+          } else if (settings.transition === "slide") {
+            const slideOffset =
+              frameInImage < transitionFrames
+                ? videoWidth * (1 - frameInImage / transitionFrames)
+                : 0;
+            drawX += slideOffset;
+          } else if (settings.transition === "zoom") {
+            const zoomScale =
+              frameInImage < transitionFrames
+                ? 1 + 0.1 * (1 - frameInImage / transitionFrames)
+                : 1;
+            const centerX = drawX + drawWidth / 2;
+            const centerY = drawY + drawHeight / 2;
+            drawX = centerX - (drawWidth * zoomScale) / 2;
+            drawY = centerY - (drawHeight * zoomScale) / 2;
+            drawWidth *= zoomScale;
+            drawHeight *= zoomScale;
+          }
 
-      // 생성된 영상 URL 설정 (실제로는 생성된 영상의 URL)
-      setGeneratedVideoUrl("#"); // 실제 구현에서는 생성된 영상의 URL
+          // 이미지 그리기
+          ctx.drawImage(currentImage, drawX, drawY, drawWidth, drawHeight);
+          ctx.globalAlpha = 1;
+
+          // 자막 그리기
+          if (subtitle) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(0, videoHeight - 80, videoWidth, 80);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 32px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(subtitle, videoWidth / 2, videoHeight - 30);
+          }
+
+          // 다음 이미지로 전환 체크
+          if (frameInImage >= imageDuration) {
+            currentImageIndex = (currentImageIndex + 1) % loadedImages.length;
+            imageStartFrame = currentFrame;
+          }
+        }
+
+        currentFrame++;
+
+        // 진행률 업데이트
+        const progress = Math.min((currentFrame / totalFrames) * 100, 100);
+        setGenerationProgress(progress);
+
+        if (currentFrame < totalFrames) {
+          requestAnimationFrame(renderFrame);
+        } else {
+          // 영상 녹화 종료
+          setTimeout(() => {
+            mediaRecorder.stop();
+          }, 1000); // 1초 추가 대기
+        }
+      };
+
+      // 렌더링 시작
+      renderFrame();
     } catch (error) {
-      console.error("영상 생성 중 오류 발생:", error);
-      alert("영상 생성 중 오류가 발생했습니다.");
+      console.error("Video generation error:", error);
+      alert("Video generation failed. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -48,10 +189,10 @@ export default function VideoGenerator({
 
   const handleDownload = () => {
     if (generatedVideoUrl) {
-      // 실제 다운로드 로직
+      // WebM을 MP4로 변환하여 다운로드
       const link = document.createElement("a");
       link.href = generatedVideoUrl;
-      link.download = "slide-video.mp4";
+      link.download = "slide-video.webm"; // WebM 형식으로 다운로드
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -169,6 +310,19 @@ export default function VideoGenerator({
             </p>
           </div>
 
+          {/* 영상 미리보기 */}
+          <div className="bg-gray-900 rounded-lg p-4">
+            <h4 className="text-white text-lg font-medium mb-3">Preview</h4>
+            <video
+              src={generatedVideoUrl}
+              controls
+              className="w-full rounded-lg"
+              style={{ maxHeight: "400px" }}
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+
           {/* 다운로드 버튼 */}
           <div className="text-center">
             <button
@@ -207,7 +361,8 @@ export default function VideoGenerator({
               </p>
               <ul className="text-xs text-yellow-700 mt-1 space-y-1">
                 <li>• Video generation time depends on browser performance</li>
-                <li>• Generated video will be downloaded in MP4 format</li>
+                <li>• Generated video will be downloaded in WebM format</li>
+                <li>• WebM format is supported by most modern browsers</li>
                 <li>
                   • Images and music files are processed only in the browser and
                   not sent to any server
