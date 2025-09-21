@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 export default function VideoGenerator({
   images,
@@ -12,6 +14,8 @@ export default function VideoGenerator({
 }) {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState(null);
+  const [ffmpeg, setFFmpeg] = useState(null);
+  const [isFFmpegLoaded, setIsFFmpegLoaded] = useState(false);
 
   const handleGenerateVideo = async () => {
     setIsGenerating(true);
@@ -28,13 +32,47 @@ export default function VideoGenerator({
       canvas.width = videoWidth;
       canvas.height = videoHeight;
 
-      // MediaRecorder 설정
-      const stream = canvas.captureStream(30); // 30fps
+      // 오디오 컨텍스트 생성 (음악용)
+      let audioContext = null;
+      let audioBuffer = null;
+      let audioSource = null;
+
+      if (musicFile) {
+        try {
+          audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          const arrayBuffer = await musicFile.file.arrayBuffer();
+          audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        } catch (audioError) {
+          console.warn("Audio processing failed:", audioError);
+        }
+      }
+
+      // MediaRecorder 설정 (오디오 포함)
+      const canvasStream = canvas.captureStream(30); // 30fps
+
+      // 오디오 트랙 추가
+      if (audioContext && audioBuffer) {
+        const audioDestination = audioContext.createMediaStreamDestination();
+        audioSource = audioContext.createBufferSource();
+        audioSource.buffer = audioBuffer;
+        audioSource.connect(audioDestination);
+
+        // 오디오와 비디오 스트림 결합
+        const combinedStream = new MediaStream([
+          ...canvasStream.getVideoTracks(),
+          ...audioDestination.stream.getAudioTracks(),
+        ]);
+
+        var stream = combinedStream;
+      } else {
+        var stream = canvasStream;
+      }
 
       // 브라우저 호환성을 위한 MIME 타입 선택
-      let mimeType = "video/webm;codecs=vp9";
+      let mimeType = "video/webm;codecs=vp9,opus";
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = "video/webm;codecs=vp8";
+        mimeType = "video/webm;codecs=vp8,opus";
         if (!MediaRecorder.isTypeSupported(mimeType)) {
           mimeType = "video/webm";
         }
@@ -43,6 +81,7 @@ export default function VideoGenerator({
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: mimeType,
         videoBitsPerSecond: 2500000, // 2.5Mbps
+        audioBitsPerSecond: 128000, // 128kbps
       });
 
       const chunks = [];
@@ -52,10 +91,20 @@ export default function VideoGenerator({
         }
       };
 
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
-        setGeneratedVideoUrl(url);
+      mediaRecorder.onstop = async () => {
+        const webmBlob = new Blob(chunks, { type: "video/webm" });
+
+        // WebM을 MP4로 변환
+        try {
+          const mp4Blob = await convertWebMToMP4(webmBlob);
+          const url = URL.createObjectURL(mp4Blob);
+          setGeneratedVideoUrl(url);
+        } catch (conversionError) {
+          console.warn("MP4 conversion failed, using WebM:", conversionError);
+          const url = URL.createObjectURL(webmBlob);
+          setGeneratedVideoUrl(url);
+        }
+
         setGenerationProgress(100);
       };
 
@@ -80,6 +129,11 @@ export default function VideoGenerator({
           });
         })
       );
+
+      // 음악 재생 시작
+      if (audioSource) {
+        audioSource.start(0);
+      }
 
       const renderFrame = () => {
         // 배경을 검은색으로 클리어
@@ -173,6 +227,9 @@ export default function VideoGenerator({
           // 영상 녹화 종료
           setTimeout(() => {
             mediaRecorder.stop();
+            if (audioSource) {
+              audioSource.stop();
+            }
           }, 1000); // 1초 추가 대기
         }
       };
@@ -187,12 +244,77 @@ export default function VideoGenerator({
     }
   };
 
+  // FFmpeg 초기화
+  const initializeFFmpeg = async () => {
+    if (isFFmpegLoaded) return ffmpeg;
+
+    const ffmpegInstance = new FFmpeg();
+
+    try {
+      const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+      await ffmpegInstance.load({
+        coreURL: await toBlobURL(
+          `${baseURL}/ffmpeg-core.js`,
+          "text/javascript"
+        ),
+        wasmURL: await toBlobURL(
+          `${baseURL}/ffmpeg-core.wasm`,
+          "application/wasm"
+        ),
+      });
+
+      setFFmpeg(ffmpegInstance);
+      setIsFFmpegLoaded(true);
+      return ffmpegInstance;
+    } catch (error) {
+      console.error("FFmpeg initialization failed:", error);
+      throw error;
+    }
+  };
+
+  // WebM을 MP4로 변환하는 함수
+  const convertWebMToMP4 = async (webmBlob) => {
+    try {
+      const ffmpegInstance = await initializeFFmpeg();
+
+      // WebM 파일을 FFmpeg에 쓰기
+      await ffmpegInstance.writeFile("input.webm", await fetchFile(webmBlob));
+
+      // MP4로 변환
+      await ffmpegInstance.exec([
+        "-i",
+        "input.webm",
+        "-c:v",
+        "libx264",
+        "-c:a",
+        "aac",
+        "-preset",
+        "fast",
+        "-crf",
+        "23",
+        "output.mp4",
+      ]);
+
+      // 변환된 MP4 파일 읽기
+      const data = await ffmpegInstance.readFile("output.mp4");
+
+      // 파일 정리
+      await ffmpegInstance.deleteFile("input.webm");
+      await ffmpegInstance.deleteFile("output.mp4");
+
+      return new Blob([data.buffer], { type: "video/mp4" });
+    } catch (error) {
+      console.error("MP4 conversion failed:", error);
+      // 변환 실패 시 원본 WebM 반환
+      return webmBlob;
+    }
+  };
+
   const handleDownload = () => {
     if (generatedVideoUrl) {
-      // WebM을 MP4로 변환하여 다운로드
       const link = document.createElement("a");
       link.href = generatedVideoUrl;
-      link.download = "slide-video.webm"; // WebM 형식으로 다운로드
+      link.download = "slide-video.mp4"; // MP4 형식으로 다운로드
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -294,6 +416,12 @@ export default function VideoGenerator({
               <p className="text-sm text-gray-500 mt-2">
                 Video generation is processed in the browser
               </p>
+              {!isFFmpegLoaded && (
+                <p className="text-xs text-blue-600 mt-1">
+                  <i className="fas fa-info-circle mr-1"></i>
+                  First generation may take longer due to FFmpeg loading
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -361,8 +489,11 @@ export default function VideoGenerator({
               </p>
               <ul className="text-xs text-yellow-700 mt-1 space-y-1">
                 <li>• Video generation time depends on browser performance</li>
-                <li>• Generated video will be downloaded in WebM format</li>
-                <li>• WebM format is supported by most modern browsers</li>
+                <li>• Generated video will be downloaded in MP4 format</li>
+                <li>
+                  • MP4 format is widely supported by all devices and platforms
+                </li>
+                <li>• Audio and video are synchronized during generation</li>
                 <li>
                   • Images and music files are processed only in the browser and
                   not sent to any server
