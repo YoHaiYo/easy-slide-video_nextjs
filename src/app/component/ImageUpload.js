@@ -6,18 +6,18 @@ export default function ImageUpload({ images, setImages, onNext }) {
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (files) => {
-    const imageFiles = Array.from(files).filter(file => 
-      file.type.startsWith('image/')
+    const imageFiles = Array.from(files).filter((file) =>
+      file.type.startsWith("image/")
     );
-    
+
     const newImages = imageFiles.map((file, index) => ({
       id: Date.now() + index,
       file,
       preview: URL.createObjectURL(file),
       name: file.name,
-      order: images.length + index + 1
+      order: images.length + index + 1,
     }));
-    
+
     setImages([...images, ...newImages]);
   };
 
@@ -44,22 +44,26 @@ export default function ImageUpload({ images, setImages, onNext }) {
   };
 
   const removeImage = (id) => {
-    const imageToRemove = images.find(img => img.id === id);
+    const imageToRemove = images.find((img) => img.id === id);
     if (imageToRemove) {
       URL.revokeObjectURL(imageToRemove.preview);
     }
-    setImages(images.filter(img => img.id !== id));
+    setImages(images.filter((img) => img.id !== id));
   };
 
   const moveImage = (id, direction) => {
-    const currentIndex = images.findIndex(img => img.id === id);
+    const currentIndex = images.findIndex((img) => img.id === id);
     if (currentIndex === -1) return;
 
     const newImages = [...images];
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    
+    const targetIndex =
+      direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
     if (targetIndex >= 0 && targetIndex < newImages.length) {
-      [newImages[currentIndex], newImages[targetIndex]] = [newImages[targetIndex], newImages[currentIndex]];
+      [newImages[currentIndex], newImages[targetIndex]] = [
+        newImages[targetIndex],
+        newImages[currentIndex],
+      ];
       setImages(newImages);
     }
   };
@@ -68,15 +72,15 @@ export default function ImageUpload({ images, setImages, onNext }) {
     <div>
       <h3 className="text-lg font-semibold text-gray-800 mb-4">
         <i className="fas fa-images mr-2 text-green-500"></i>
-        사진 업로드
+        Upload Images
       </h3>
-      
+
       {/* 드래그 앤 드롭 영역 */}
       <div
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 ${
-          isDragging 
-            ? 'border-green-500 bg-green-50' 
-            : 'border-gray-300 hover:border-green-400'
+          isDragging
+            ? "border-green-500 bg-green-50"
+            : "border-gray-300 hover:border-green-400"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -85,11 +89,9 @@ export default function ImageUpload({ images, setImages, onNext }) {
       >
         <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
         <p className="text-gray-600 mb-2">
-          사진을 드래그하거나 클릭하여 업로드하세요
+          Drag and drop images here or click to upload
         </p>
-        <p className="text-sm text-gray-500">
-          JPG, PNG, GIF 파일을 지원합니다
-        </p>
+        <p className="text-sm text-gray-500">Supports JPG, PNG, GIF files</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -104,7 +106,7 @@ export default function ImageUpload({ images, setImages, onNext }) {
       {images.length > 0 && (
         <div className="mt-6">
           <h4 className="text-md font-medium text-gray-700 mb-3">
-            업로드된 사진 ({images.length}장)
+            Uploaded Images ({images.length})
           </h4>
           <div className="space-y-3 max-h-64 overflow-y-auto">
             {images.map((image, index) => (
@@ -121,20 +123,18 @@ export default function ImageUpload({ images, setImages, onNext }) {
                   <p className="text-sm font-medium text-gray-800 truncate">
                     {image.name}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    순서: {index + 1}
-                  </p>
+                  <p className="text-xs text-gray-500">Order: {index + 1}</p>
                 </div>
                 <div className="flex space-x-1">
                   <button
-                    onClick={() => moveImage(image.id, 'up')}
+                    onClick={() => moveImage(image.id, "up")}
                     disabled={index === 0}
                     className="p-1 text-gray-400 hover:text-green-500 disabled:opacity-30"
                   >
                     <i className="fas fa-chevron-up"></i>
                   </button>
                   <button
-                    onClick={() => moveImage(image.id, 'down')}
+                    onClick={() => moveImage(image.id, "down")}
                     disabled={index === images.length - 1}
                     className="p-1 text-gray-400 hover:text-green-500 disabled:opacity-30"
                   >
@@ -160,7 +160,7 @@ export default function ImageUpload({ images, setImages, onNext }) {
           disabled={images.length === 0}
           className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
         >
-          다음 단계
+          Next Step
           <i className="fas fa-arrow-right ml-2"></i>
         </button>
       </div>

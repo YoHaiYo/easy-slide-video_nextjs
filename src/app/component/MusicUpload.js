@@ -1,17 +1,22 @@
 "use client";
 import { useState, useRef } from "react";
 
-export default function MusicUpload({ musicFile, setMusicFile, onNext, onPrev }) {
+export default function MusicUpload({
+  musicFile,
+  setMusicFile,
+  onNext,
+  onPrev,
+}) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   const audioRef = useRef(null);
 
   const handleFileSelect = (file) => {
-    if (file && file.type.startsWith('audio/')) {
+    if (file && file.type.startsWith("audio/")) {
       setMusicFile({
         file,
         name: file.name,
-        preview: URL.createObjectURL(file)
+        preview: URL.createObjectURL(file),
       });
     }
   };
@@ -48,22 +53,22 @@ export default function MusicUpload({ musicFile, setMusicFile, onNext, onPrev })
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
     <div>
       <h3 className="text-lg font-semibold text-gray-800 mb-4">
         <i className="fas fa-music mr-2 text-green-500"></i>
-        음악 추가
+        Add Music
       </h3>
 
       {/* 음악 파일 업로드 영역 */}
       <div
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 ${
-          isDragging 
-            ? 'border-green-500 bg-green-50' 
-            : 'border-gray-300 hover:border-green-400'
+          isDragging
+            ? "border-green-500 bg-green-50"
+            : "border-gray-300 hover:border-green-400"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -72,11 +77,9 @@ export default function MusicUpload({ musicFile, setMusicFile, onNext, onPrev })
       >
         <i className="fas fa-music text-4xl text-gray-400 mb-4"></i>
         <p className="text-gray-600 mb-2">
-          음악 파일을 드래그하거나 클릭하여 업로드하세요
+          Drag and drop music file here or click to upload
         </p>
-        <p className="text-sm text-gray-500">
-          MP3, WAV, M4A 파일을 지원합니다
-        </p>
+        <p className="text-sm text-gray-500">Supports MP3, WAV, M4A files</p>
         <input
           ref={fileInputRef}
           type="file"
@@ -90,7 +93,7 @@ export default function MusicUpload({ musicFile, setMusicFile, onNext, onPrev })
       {musicFile && (
         <div className="mt-6">
           <h4 className="text-md font-medium text-gray-700 mb-3">
-            선택된 음악
+            Selected Music
           </h4>
           <div className="bg-gray-50 rounded-lg p-4 border">
             <div className="flex items-center justify-between">
@@ -110,7 +113,7 @@ export default function MusicUpload({ musicFile, setMusicFile, onNext, onPrev })
                 <i className="fas fa-trash"></i>
               </button>
             </div>
-            
+
             {/* 음악 재생 컨트롤 */}
             <div className="mt-4">
               <audio
@@ -122,7 +125,7 @@ export default function MusicUpload({ musicFile, setMusicFile, onNext, onPrev })
                   // 음악 길이 정보를 표시할 수 있음
                 }}
               >
-                브라우저가 오디오를 지원하지 않습니다.
+                Your browser does not support the audio element.
               </audio>
             </div>
           </div>
@@ -136,10 +139,11 @@ export default function MusicUpload({ musicFile, setMusicFile, onNext, onPrev })
             <i className="fas fa-info-circle text-blue-500 mt-1"></i>
             <div>
               <p className="text-sm text-blue-800 font-medium">
-                음악 없이 진행하기
+                Continue without music
               </p>
               <p className="text-xs text-blue-600 mt-1">
-                음악을 추가하지 않으면 사진만으로 슬라이드쇼가 생성됩니다.
+                You can create a slideshow with images only if you don't add
+                music.
               </p>
             </div>
           </div>
@@ -153,13 +157,13 @@ export default function MusicUpload({ musicFile, setMusicFile, onNext, onPrev })
           className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200"
         >
           <i className="fas fa-arrow-left mr-2"></i>
-          이전
+          Previous
         </button>
         <button
           onClick={onNext}
           className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors duration-200"
         >
-          다음 단계
+          Next Step
           <i className="fas fa-arrow-right ml-2"></i>
         </button>
       </div>

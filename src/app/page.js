@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ImageUpload from "./component/ImageUpload";
 import ImageSettings from "./component/ImageSettings";
 import MusicUpload from "./component/MusicUpload";
@@ -8,6 +9,8 @@ import VideoPreview from "./component/VideoPreview";
 import VideoGenerator from "./component/VideoGenerator";
 
 export default function Home() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [images, setImages] = useState([]);
   const [imageSettings, setImageSettings] = useState({
@@ -19,26 +22,40 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const steps = [
-    { id: 1, title: "사진 업로드", icon: "fas fa-images" },
-    { id: 2, title: "순서/간격 설정", icon: "fas fa-cog" },
-    { id: 3, title: "음악 추가", icon: "fas fa-music" },
-    { id: 4, title: "자막 입력", icon: "fas fa-font" },
-    { id: 5, title: "미리보기", icon: "fas fa-play" },
-    { id: 6, title: "영상 생성", icon: "fas fa-download" },
+    { id: 1, title: "Upload Images", icon: "fas fa-images" },
+    { id: 2, title: "Settings", icon: "fas fa-cog" },
+    { id: 3, title: "Add Music", icon: "fas fa-music" },
+    { id: 4, title: "Subtitles", icon: "fas fa-font" },
+    { id: 5, title: "Preview", icon: "fas fa-play" },
+    { id: 6, title: "Generate", icon: "fas fa-download" },
   ];
+
+  // URL 쿼리 파라미터에서 현재 단계 읽기
+  useEffect(() => {
+    const step = searchParams.get("step");
+    if (step && parseInt(step) >= 1 && parseInt(step) <= 6) {
+      setCurrentStep(parseInt(step));
+    }
+  }, [searchParams]);
+
+  // 단계 변경 시 URL 업데이트
+  const handleStepChange = (step) => {
+    setCurrentStep(step);
+    router.push(`?step=${step}`, { scroll: false });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-white">
       {/* 헤더 */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="text-center">
             <h1 className="text-4xl font-bold text-green-600 mb-2">
               <i className="fas fa-video mr-3"></i>
               Easy Slide Video
             </h1>
             <p className="text-gray-600">
-              사진과 음악으로 간단하게 영상 만들기
+              Create beautiful slideshow videos from photos and music
             </p>
           </div>
         </div>
@@ -46,109 +63,118 @@ export default function Home() {
 
       {/* 진행 단계 표시 */}
       <div className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex justify-center">
-            <div className="flex space-x-4">
+            <div className="flex space-x-2">
               {steps.map((step) => (
-                <div
+                <button
                   key={step.id}
+                  onClick={() => handleStepChange(step.id)}
                   className={`flex items-center px-4 py-2 rounded-full transition-all duration-300 ${
                     currentStep >= step.id
                       ? "bg-green-500 text-white"
-                      : "bg-gray-200 text-gray-500"
+                      : "bg-gray-200 text-gray-500 hover:bg-gray-300"
                   }`}
                 >
                   <i className={`${step.icon} mr-2`}></i>
                   <span className="text-sm font-medium">{step.title}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
         </div>
       </div>
 
+      {/* 상단 네비게이션 버튼 */}
+      <div className="bg-white border-b">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => handleStepChange(Math.max(1, currentStep - 1))}
+              disabled={currentStep === 1}
+              className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              <i className="fas fa-arrow-left mr-2"></i>
+              Previous
+            </button>
+
+            <div className="text-sm text-gray-600">
+              Step {currentStep} of {steps.length}
+            </div>
+
+            <button
+              onClick={() => handleStepChange(Math.min(6, currentStep + 1))}
+              disabled={currentStep === 6}
+              className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+            >
+              Next
+              <i className="fas fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 메인 컨텐츠 */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 왼쪽: 설정 패널 */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-6 sticky top-8">
-              {currentStep === 1 && (
-                <ImageUpload
-                  images={images}
-                  setImages={setImages}
-                  onNext={() => setCurrentStep(2)}
-                />
-              )}
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          {currentStep === 1 && (
+            <ImageUpload
+              images={images}
+              setImages={setImages}
+              onNext={() => handleStepChange(2)}
+            />
+          )}
 
-              {currentStep === 2 && (
-                <ImageSettings
-                  settings={imageSettings}
-                  setSettings={setImageSettings}
-                  images={images}
-                  onNext={() => setCurrentStep(3)}
-                  onPrev={() => setCurrentStep(1)}
-                />
-              )}
+          {currentStep === 2 && (
+            <ImageSettings
+              settings={imageSettings}
+              setSettings={setImageSettings}
+              images={images}
+              onNext={() => handleStepChange(3)}
+              onPrev={() => handleStepChange(1)}
+            />
+          )}
 
-              {currentStep === 3 && (
-                <MusicUpload
-                  musicFile={musicFile}
-                  setMusicFile={setMusicFile}
-                  onNext={() => setCurrentStep(4)}
-                  onPrev={() => setCurrentStep(2)}
-                />
-              )}
+          {currentStep === 3 && (
+            <MusicUpload
+              musicFile={musicFile}
+              setMusicFile={setMusicFile}
+              onNext={() => handleStepChange(4)}
+              onPrev={() => handleStepChange(2)}
+            />
+          )}
 
-              {currentStep === 4 && (
-                <SubtitleInput
-                  subtitle={subtitle}
-                  setSubtitle={setSubtitle}
-                  onNext={() => setCurrentStep(5)}
-                  onPrev={() => setCurrentStep(3)}
-                />
-              )}
+          {currentStep === 4 && (
+            <SubtitleInput
+              subtitle={subtitle}
+              setSubtitle={setSubtitle}
+              onNext={() => handleStepChange(5)}
+              onPrev={() => handleStepChange(3)}
+            />
+          )}
 
-              {currentStep === 5 && (
-                <VideoPreview
-                  images={images}
-                  settings={imageSettings}
-                  musicFile={musicFile}
-                  subtitle={subtitle}
-                  onNext={() => setCurrentStep(6)}
-                  onPrev={() => setCurrentStep(4)}
-                />
-              )}
+          {currentStep === 5 && (
+            <VideoPreview
+              images={images}
+              settings={imageSettings}
+              musicFile={musicFile}
+              subtitle={subtitle}
+              onNext={() => handleStepChange(6)}
+              onPrev={() => handleStepChange(4)}
+            />
+          )}
 
-              {currentStep === 6 && (
-                <VideoGenerator
-                  images={images}
-                  settings={imageSettings}
-                  musicFile={musicFile}
-                  subtitle={subtitle}
-                  isGenerating={isGenerating}
-                  setIsGenerating={setIsGenerating}
-                  onPrev={() => setCurrentStep(5)}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* 오른쪽: 미리보기 영역 */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                <i className="fas fa-eye mr-2 text-green-500"></i>
-                미리보기
-              </h3>
-
-              {/* 미리보기 컨텐츠는 각 컴포넌트에서 처리 */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <i className="fas fa-image text-6xl text-gray-400 mb-4"></i>
-                <p className="text-gray-500">미리보기가 여기에 표시됩니다</p>
-              </div>
-            </div>
-          </div>
+          {currentStep === 6 && (
+            <VideoGenerator
+              images={images}
+              settings={imageSettings}
+              musicFile={musicFile}
+              subtitle={subtitle}
+              isGenerating={isGenerating}
+              setIsGenerating={setIsGenerating}
+              onPrev={() => handleStepChange(5)}
+            />
+          )}
         </div>
       </div>
     </div>

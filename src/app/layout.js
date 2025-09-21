@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="">
-        <Navbar />
+        {/* <Navbar /> */}
         <main className="mx-auto">{children}</main>
 
         {/* 토스트 메시지 (기본 숨김) */}
