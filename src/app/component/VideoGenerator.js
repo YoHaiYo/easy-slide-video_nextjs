@@ -193,6 +193,7 @@ export default function VideoGenerator({
           setGenerationStatus("MP4 변환이 완료되었습니다!");
           const url = URL.createObjectURL(mp4Blob);
           setGeneratedVideoUrl(url);
+          setIsGenerating(false); // 영상 생성 완료
         } catch (conversionError) {
           console.warn(
             "❌ MP4 conversion failed, using WebM:",
@@ -203,12 +204,13 @@ export default function VideoGenerator({
           );
           const url = URL.createObjectURL(webmBlob);
           setGeneratedVideoUrl(url);
+          setIsGenerating(false); // 영상 생성 완료 (WebM)
         }
 
         setGenerationProgress(100);
         console.log("🎉 영상 생성 완전 완료!");
         // 로딩 UI는 generatedVideoUrl이 설정된 후에만 제거
-        setIsGenerating(false);
+        // setIsGenerating(false)는 제거 - generatedVideoUrl이 설정되면 자동으로 로딩이 끝남
       };
 
       // 영상 녹화 시작
@@ -412,12 +414,13 @@ export default function VideoGenerator({
       }
 
       alert(errorMessage);
-    } finally {
-      setIsGenerating(false);
-      setIsInitializing(false);
-      setGenerationProgress(0);
-      setConversionProgress(0);
-    }
+      setIsGenerating(false); // 에러 발생 시 로딩 종료
+      } finally {
+        // isGenerating은 MP4 변환 완료 시점에서 설정됨
+        setIsInitializing(false);
+        setGenerationProgress(0);
+        setConversionProgress(0);
+      }
   };
 
   // FFmpeg 초기화
@@ -622,6 +625,20 @@ export default function VideoGenerator({
                     Converting to MP4 format...
                   </p>
                 )}
+                
+                {/* 진행률 바 */}
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Progress</span>
+                    <span>{Math.round(generationProgress)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${generationProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             )}
 
