@@ -16,10 +16,14 @@ export default function VideoGenerator({
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState(null);
   const [ffmpeg, setFFmpeg] = useState(null);
   const [isFFmpegLoaded, setIsFFmpegLoaded] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState(""); // 생성 상태 메시지
+  const [conversionProgress, setConversionProgress] = useState(0); // 변환 진행률
 
   const handleGenerateVideo = async () => {
     setIsGenerating(true);
     setGenerationProgress(0);
+    setGenerationStatus("영상 생성을 시작합니다...");
+    setConversionProgress(0);
 
     try {
       // Canvas 생성
@@ -93,14 +97,19 @@ export default function VideoGenerator({
 
       mediaRecorder.onstop = async () => {
         const webmBlob = new Blob(chunks, { type: "video/webm" });
+        setGenerationStatus("WebM 영상을 생성했습니다. MP4로 변환 중...");
 
         // WebM을 MP4로 변환
         try {
+          setConversionProgress(10);
           const mp4Blob = await convertWebMToMP4(webmBlob);
+          setConversionProgress(100);
+          setGenerationStatus("MP4 변환이 완료되었습니다!");
           const url = URL.createObjectURL(mp4Blob);
           setGeneratedVideoUrl(url);
         } catch (conversionError) {
           console.warn("MP4 conversion failed, using WebM:", conversionError);
+          setGenerationStatus("MP4 변환에 실패했습니다. WebM 형식으로 제공됩니다.");
           const url = URL.createObjectURL(webmBlob);
           setGeneratedVideoUrl(url);
         }
@@ -109,9 +118,11 @@ export default function VideoGenerator({
       };
 
       // 영상 녹화 시작
+      setGenerationStatus("영상 녹화를 시작합니다...");
       mediaRecorder.start();
 
       // 이미지 로드 및 렌더링
+      setGenerationStatus("이미지를 로드하고 있습니다...");
       const totalDuration = images.length * settings.duration;
       const frameRate = 30;
       const totalFrames = totalDuration * frameRate;
@@ -134,6 +145,8 @@ export default function VideoGenerator({
       if (audioSource) {
         audioSource.start(0);
       }
+
+      setGenerationStatus("영상을 렌더링하고 있습니다...");
 
       const renderFrame = () => {
         // 배경을 검은색으로 클리어
@@ -225,6 +238,7 @@ export default function VideoGenerator({
           requestAnimationFrame(renderFrame);
         } else {
           // 영상 녹화 종료
+          setGenerationStatus("영상 녹화를 완료하고 있습니다...");
           setTimeout(() => {
             mediaRecorder.stop();
             if (audioSource) {
@@ -238,9 +252,25 @@ export default function VideoGenerator({
       renderFrame();
     } catch (error) {
       console.error("Video generation error:", error);
-      alert("Video generation failed. Please try again.");
+      setGenerationStatus("영상 생성 중 오류가 발생했습니다.");
+      
+      // 사용자에게 더 친화적인 에러 메시지 표시
+      let errorMessage = "영상 생성에 실패했습니다. ";
+      if (error.name === "NotSupportedError") {
+        errorMessage += "브라우저가 영상 녹화를 지원하지 않습니다.";
+      } else if (error.name === "NotAllowedError") {
+        errorMessage += "마이크/카메라 권한이 필요합니다.";
+      } else if (error.message.includes("FFmpeg")) {
+        errorMessage += "FFmpeg 로딩에 실패했습니다. 페이지를 새로고침해주세요.";
+      } else {
+        errorMessage += "잠시 후 다시 시도해주세요.";
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsGenerating(false);
+      setGenerationProgress(0);
+      setConversionProgress(0);
     }
   };
 
@@ -251,7 +281,9 @@ export default function VideoGenerator({
     const ffmpegInstance = new FFmpeg();
 
     try {
+      setGenerationStatus("FFmpeg를 로딩하고 있습니다...");
       const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+      
       await ffmpegInstance.load({
         coreURL: await toBlobURL(
           `${baseURL}/ffmpeg-core.js`,
@@ -265,10 +297,12 @@ export default function VideoGenerator({
 
       setFFmpeg(ffmpegInstance);
       setIsFFmpegLoaded(true);
+      setGenerationStatus("FFmpeg 로딩이 완료되었습니다.");
       return ffmpegInstance;
     } catch (error) {
       console.error("FFmpeg initialization failed:", error);
-      throw error;
+      setGenerationStatus("FFmpeg 로딩에 실패했습니다.");
+      throw new Error("FFmpeg 로딩 실패: " + error.message);
     }
   };
 
@@ -276,11 +310,13 @@ export default function VideoGenerator({
   const convertWebMToMP4 = async (webmBlob) => {
     try {
       const ffmpegInstance = await initializeFFmpeg();
+      setConversionProgress(20);
 
       // WebM 파일을 FFmpeg에 쓰기
       await ffmpegInstance.writeFile("input.webm", await fetchFile(webmBlob));
+      setConversionProgress(40);
 
-      // MP4로 변환
+      // MP4로 변환 (더 안정적인 설정 사용)
       await ffmpegInstance.exec([
         "-i",
         "input.webm",
@@ -289,18 +325,27 @@ export default function VideoGenerator({
         "-c:a",
         "aac",
         "-preset",
-        "fast",
+        "ultrafast", // 더 빠른 변환
         "-crf",
-        "23",
+        "28", // 품질과 크기 균형
+        "-movflags",
+        "+faststart", // 웹 최적화
+        "-y", // 덮어쓰기 허용
         "output.mp4",
       ]);
+      setConversionProgress(80);
 
       // 변환된 MP4 파일 읽기
       const data = await ffmpegInstance.readFile("output.mp4");
+      setConversionProgress(90);
 
-      // 파일 정리
-      await ffmpegInstance.deleteFile("input.webm");
-      await ffmpegInstance.deleteFile("output.mp4");
+      // 파일 정리 (에러가 발생해도 계속 진행)
+      try {
+        await ffmpegInstance.deleteFile("input.webm");
+        await ffmpegInstance.deleteFile("output.mp4");
+      } catch (cleanupError) {
+        console.warn("File cleanup failed:", cleanupError);
+      }
 
       return new Blob([data.buffer], { type: "video/mp4" });
     } catch (error) {
@@ -381,23 +426,50 @@ export default function VideoGenerator({
 
           {/* 생성 진행률 */}
           {isGenerating && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="text-center">
-                <div className="inline-flex items-center space-x-2 text-green-600">
-                  <i className="fas fa-cog fa-spin"></i>
-                  <span className="font-medium">Generating video...</span>
+                <div className="inline-flex items-center space-x-2 text-green-600 mb-2">
+                  <i className="fas fa-cog fa-spin text-xl"></i>
+                  <span className="font-medium text-lg">영상 생성 중...</span>
+                </div>
+                <p className="text-sm text-gray-600">{generationStatus}</p>
+              </div>
+
+              {/* 메인 진행률 바 */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>전체 진행률</span>
+                  <span>{Math.round(generationProgress)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div
+                    className="bg-green-500 h-4 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${generationProgress}%` }}
+                  ></div>
                 </div>
               </div>
 
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="bg-green-500 h-3 rounded-full transition-all duration-300"
-                  style={{ width: `${generationProgress}%` }}
-                ></div>
-              </div>
+              {/* MP4 변환 진행률 (변환 중일 때만 표시) */}
+              {conversionProgress > 0 && conversionProgress < 100 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>MP4 변환</span>
+                    <span>{Math.round(conversionProgress)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-blue-500 h-3 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${conversionProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
 
-              <div className="text-center text-sm text-gray-600">
-                {Math.round(generationProgress)}% complete
+              {/* 예상 시간 표시 */}
+              <div className="text-center text-xs text-gray-500">
+                {generationProgress < 50 && "영상 렌더링 중... 잠시만 기다려주세요."}
+                {generationProgress >= 50 && generationProgress < 100 && "거의 완료되었습니다!"}
+                {conversionProgress > 0 && conversionProgress < 100 && "MP4 변환 중..."}
               </div>
             </div>
           )}
@@ -468,6 +540,8 @@ export default function VideoGenerator({
               onClick={() => {
                 setGeneratedVideoUrl(null);
                 setGenerationProgress(0);
+                setConversionProgress(0);
+                setGenerationStatus("");
               }}
               className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200"
             >
@@ -520,6 +594,8 @@ export default function VideoGenerator({
             onClick={() => {
               setGeneratedVideoUrl(null);
               setGenerationProgress(0);
+              setConversionProgress(0);
+              setGenerationStatus("");
             }}
             className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200"
           >
