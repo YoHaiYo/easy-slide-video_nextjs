@@ -92,59 +92,33 @@ export default function ImageSettings({
 
       {/* 설정 옵션들 */}
       <div className="space-y-6">
-        {/* 사진당 표시 시간 */}
+        {/* 사진당 표시 시간 - 자동 분배 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <i className="fas fa-clock mr-1"></i>
             Display Duration per Image
           </label>
 
-          {/* 슬라이더 */}
-          <div className="flex items-center space-x-4 mb-3">
-            <input
-              type="range"
-              min="1"
-              max="30"
-              value={settings.duration}
-              onChange={handleDurationChange}
-              className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-            />
-            <span className="text-lg font-semibold text-green-600 min-w-[3rem] text-center">
-              {settings.duration}s
-            </span>
-          </div>
-
-          {/* 직접 입력 */}
-          <div className="flex items-center space-x-2 mb-3">
-            <label className="text-sm text-gray-600">Direct input:</label>
-            <input
-              type="number"
-              min="1"
-              max="30"
-              value={settings.duration}
-              onChange={handleDurationInputChange}
-              className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
-            />
-            <span className="text-sm text-gray-600">seconds</span>
-          </div>
-
-          {/* 자동 분배 버튼 */}
-          {musicFile && musicFile.duration && (
-            <div className="mb-3">
-              <button
-                onClick={handleAutoDuration}
-                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
-              >
-                <i className="fas fa-magic mr-1"></i>
-                Auto-distribute by music length (
-                {Math.floor(musicFile.customDuration || musicFile.duration)}s)
-              </button>
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <div className="flex items-center space-x-2 text-green-700 mb-2">
+              <i className="fas fa-magic"></i>
+              <span className="font-medium">
+                Auto-distributed by music length
+              </span>
             </div>
-          )}
-
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>1s</span>
-            <span>30s</span>
+            <div className="text-center">
+              <span className="text-2xl font-bold text-green-600">
+                {settings.duration}s
+              </span>
+              <p className="text-sm text-gray-600 mt-1">per image</p>
+            </div>
+            {musicFile && (
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Music length:{" "}
+                {Math.floor(musicFile.customDuration || musicFile.duration)}s ÷{" "}
+                {images.length} images
+              </p>
+            )}
           </div>
         </div>
 

@@ -19,6 +19,7 @@ export default function Home() {
   });
   const [musicFile, setMusicFile] = useState(null);
   const [subtitle, setSubtitle] = useState("");
+  const [imageSubtitles, setImageSubtitles] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
 
   const steps = [
@@ -149,6 +150,9 @@ export default function Home() {
             <SubtitleInput
               subtitle={subtitle}
               setSubtitle={setSubtitle}
+              images={images}
+              imageSubtitles={imageSubtitles}
+              setImageSubtitles={setImageSubtitles}
               onNext={() => handleStepChange(5)}
               onPrev={() => handleStepChange(3)}
             />
@@ -171,6 +175,7 @@ export default function Home() {
               settings={imageSettings}
               musicFile={musicFile}
               subtitle={subtitle}
+              imageSubtitles={imageSubtitles}
               isGenerating={isGenerating}
               setIsGenerating={setIsGenerating}
               onPrev={() => handleStepChange(5)}

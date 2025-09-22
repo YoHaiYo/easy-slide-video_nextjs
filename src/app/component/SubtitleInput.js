@@ -4,18 +4,23 @@ import { useState } from "react";
 export default function SubtitleInput({
   subtitle,
   setSubtitle,
+  images,
+  imageSubtitles,
+  setImageSubtitles,
   onNext,
   onPrev,
 }) {
   const [subtitleSettings, setSubtitleSettings] = useState({
-    position: "bottom",
     fontSize: "medium",
     color: "white",
     backgroundColor: "black",
   });
 
-  const handleSubtitleChange = (e) => {
-    setSubtitle(e.target.value);
+  const handleImageSubtitleChange = (imageIndex, value) => {
+    setImageSubtitles({
+      ...imageSubtitles,
+      [imageIndex]: value,
+    });
   };
 
   const handleSettingsChange = (setting, value) => {
@@ -32,54 +37,55 @@ export default function SubtitleInput({
         Add Subtitles
       </h3>
 
-      {/* 자막 텍스트 입력 */}
+      {/* 이미지별 자막 입력 */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Subtitle Text
+        <label className="block text-sm font-medium text-gray-700 mb-4">
+          <i className="fas fa-images mr-1"></i>
+          Subtitles for Each Image
         </label>
-        <textarea
-          value={subtitle}
-          onChange={handleSubtitleChange}
-          placeholder="Enter subtitle text to display in the video..."
-          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-          rows={4}
-        />
-        <div className="text-xs text-gray-500 mt-1">
-          {subtitle.length} characters entered
+
+        <div className="space-y-4">
+          {images.map((image, index) => (
+            <div
+              key={image.id}
+              className="border border-gray-200 rounded-lg p-4"
+            >
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200">
+                  <img
+                    src={image.preview}
+                    alt={image.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-800">
+                    Image {index + 1}
+                  </h4>
+                  <p className="text-sm text-gray-500">{image.name}</p>
+                </div>
+              </div>
+
+              <textarea
+                value={imageSubtitles[index] || ""}
+                onChange={(e) =>
+                  handleImageSubtitleChange(index, e.target.value)
+                }
+                placeholder={`Enter subtitle for image ${index + 1}...`}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                rows={2}
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                {(imageSubtitles[index] || "").length} characters
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* 자막 설정 옵션들 */}
       <div className="space-y-4">
         <h4 className="text-md font-medium text-gray-700">Subtitle Settings</h4>
-
-        {/* 자막 위치 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <i className="fas fa-arrows-alt mr-1"></i>
-            Position
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { value: "top", label: "Top", icon: "fas fa-arrow-up" },
-              { value: "center", label: "Center", icon: "fas fa-minus" },
-              { value: "bottom", label: "Bottom", icon: "fas fa-arrow-down" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleSettingsChange("position", option.value)}
-                className={`p-3 rounded-lg border text-sm font-medium transition-colors duration-200 ${
-                  subtitleSettings.position === option.value
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-300 hover:border-green-400"
-                }`}
-              >
-                <i className={`${option.icon} mr-1`}></i>
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* 글자 크기 */}
         <div>
@@ -186,49 +192,65 @@ export default function SubtitleInput({
       </div>
 
       {/* 자막 미리보기 */}
-      {subtitle && (
+      {Object.values(imageSubtitles).some((sub) => sub.trim()) && (
         <div className="mt-6">
           <h4 className="text-md font-medium text-gray-700 mb-3">
             Subtitle Preview
           </h4>
-          <div className="relative bg-gray-900 rounded-lg p-8 min-h-[120px] flex items-center justify-center">
-            <div
-              className={`text-center ${
-                subtitleSettings.position === "top"
-                  ? "self-start mt-4"
-                  : subtitleSettings.position === "center"
-                  ? "self-center"
-                  : "self-end mb-4"
-              }`}
-            >
-              <span
-                className={`inline-block px-4 py-2 rounded ${
-                  subtitleSettings.fontSize === "small"
-                    ? "text-sm"
-                    : subtitleSettings.fontSize === "medium"
-                    ? "text-base"
-                    : "text-lg"
-                } ${
-                  subtitleSettings.color === "white"
-                    ? "text-white"
-                    : subtitleSettings.color === "black"
-                    ? "text-black"
-                    : subtitleSettings.color === "yellow"
-                    ? "text-yellow-400"
-                    : "text-green-400"
-                } ${
-                  subtitleSettings.backgroundColor === "transparent"
-                    ? ""
-                    : subtitleSettings.backgroundColor === "black"
-                    ? "bg-black"
-                    : subtitleSettings.backgroundColor === "white"
-                    ? "bg-white text-black"
-                    : "bg-green-500"
-                }`}
-              >
-                {subtitle}
-              </span>
-            </div>
+          <div className="space-y-3">
+            {images.map((image, index) => {
+              const subtitleText = imageSubtitles[index];
+              if (!subtitleText || !subtitleText.trim()) return null;
+
+              return (
+                <div
+                  key={image.id}
+                  className="border border-gray-200 rounded-lg p-4"
+                >
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
+                      <img
+                        src={image.preview}
+                        alt={image.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-gray-600">
+                      Image {index + 1}
+                    </span>
+                  </div>
+                  <div className="relative bg-gray-900 rounded-lg p-4 min-h-[60px] flex items-center justify-center">
+                    <span
+                      className={`inline-block px-3 py-1 rounded text-center ${
+                        subtitleSettings.fontSize === "small"
+                          ? "text-sm"
+                          : subtitleSettings.fontSize === "medium"
+                          ? "text-base"
+                          : "text-lg"
+                      } ${
+                        subtitleSettings.color === "white"
+                          ? "text-white"
+                          : subtitleSettings.color === "black"
+                          ? "text-black"
+                          : subtitleSettings.color === "yellow"
+                          ? "text-yellow-400"
+                          : "text-green-400"
+                      } ${
+                        subtitleSettings.backgroundColor === "transparent"
+                          ? ""
+                          : subtitleSettings.backgroundColor === "black"
+                          ? "bg-black"
+                          : subtitleSettings.backgroundColor === "white"
+                          ? "bg-white text-black"
+                          : "bg-green-500"
+                      }`}
+                    >
+                      {subtitleText}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

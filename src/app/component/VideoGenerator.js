@@ -8,6 +8,7 @@ export default function VideoGenerator({
   settings,
   musicFile,
   subtitle,
+  imageSubtitles,
   isGenerating,
   setIsGenerating,
   onPrev,
@@ -186,6 +187,7 @@ export default function VideoGenerator({
         setGenerationProgress(100);
         console.log("🎉 영상 생성 완전 완료!");
         // 로딩 UI는 generatedVideoUrl이 설정된 후에만 제거
+        setIsGenerating(false);
       };
 
       // 영상 녹화 시작
@@ -303,15 +305,17 @@ export default function VideoGenerator({
           ctx.drawImage(currentImage, drawX, drawY, drawWidth, drawHeight);
           ctx.globalAlpha = 1;
 
-          // 자막 그리기
-          if (subtitle) {
+          // 자막 그리기 (이미지별 자막)
+          const currentSubtitle =
+            imageSubtitles && imageSubtitles[currentImageIndex];
+          if (currentSubtitle && currentSubtitle.trim()) {
             ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
             ctx.fillRect(0, videoHeight - 80, videoWidth, 80);
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 32px Arial";
             ctx.textAlign = "center";
-            ctx.fillText(subtitle, videoWidth / 2, videoHeight - 30);
+            ctx.fillText(currentSubtitle, videoWidth / 2, videoHeight - 30);
           }
 
           // 다음 이미지로 전환 체크
