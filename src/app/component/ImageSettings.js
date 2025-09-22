@@ -5,21 +5,24 @@ export default function ImageSettings({
   settings,
   setSettings,
   images,
-  musicFile,
+  musicFiles,
   onNext,
   onPrev,
 }) {
-  // 음악 파일이 있고 자동 분배가 아직 안된 경우 자동으로 분배
+  // 음악 파일이 있을 때 자동 분배 (음악 총 길이 = 영상 총 길이)
   React.useEffect(() => {
-    if (musicFile && settings.duration === 5) {
-      const totalDuration = musicFile.customDuration || musicFile.duration;
-      const durationPerImage = Math.floor(totalDuration / images.length);
+    if (musicFiles && musicFiles.length > 0 && images.length > 0) {
+      const totalMusicDuration = musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0);
+      const durationPerImage = totalMusicDuration / images.length;
+      
+      // 음악 길이에 맞춰 자동 분배 (음악 총 길이 = 영상 총 길이)
+      // 소수점 반올림하여 더 정확한 계산
       setSettings({
         ...settings,
-        duration: Math.max(1, Math.min(30, durationPerImage)),
+        duration: Math.max(1, Math.round(durationPerImage)),
       });
     }
-  }, [musicFile, images.length]);
+  }, [musicFiles, images.length]);
   const handleDurationChange = (e) => {
     setSettings({
       ...settings,
@@ -45,8 +48,8 @@ export default function ImageSettings({
   };
 
   const handleAutoDuration = () => {
-    if (musicFile) {
-      const totalDuration = musicFile.customDuration || musicFile.duration;
+    if (musicFiles && musicFiles.length > 0) {
+      const totalDuration = musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0);
       const durationPerImage = Math.floor(totalDuration / images.length);
       setSettings({
         ...settings,
@@ -58,6 +61,16 @@ export default function ImageSettings({
   const getTotalDuration = () => {
     return images.length * settings.duration;
   };
+
+  const formatDuration = (seconds) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m > 0) {
+    return `${m}m ${s}s`;
+  }
+  return `${s}s`;
+};
+
 
   return (
     <div>
@@ -108,15 +121,17 @@ export default function ImageSettings({
             </div>
             <div className="text-center">
               <span className="text-2xl font-bold text-green-600">
-                {settings.duration}s
+                {formatDuration(settings.duration)}
               </span>
               <p className="text-sm text-gray-600 mt-1">per image</p>
             </div>
-            {musicFile && (
+            {musicFiles && musicFiles.length > 0 && (
               <p className="text-xs text-gray-500 mt-2 text-center">
-                Music length:{" "}
-                {Math.floor(musicFile.customDuration || musicFile.duration)}s ÷{" "}
-                {images.length} images
+                Video length = Music length:{" "}
+                {Math.floor(musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0))}s{" "}
+                ({Math.floor(musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0) / 60)}m{" "}
+                {Math.floor(musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0) % 60)}s) ÷{" "}
+                {images.length} images = {Math.round(musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0) / images.length)}s per image
               </p>
             )}
           </div>
@@ -146,11 +161,22 @@ export default function ImageSettings({
               Total Video Length
             </span>
             <span className="text-lg font-bold text-green-600">
-              {getTotalDuration()}s
+              {musicFiles && musicFiles.length > 0 
+                ? Math.floor(musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0))
+                : getTotalDuration()
+              }s
             </span>
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            {images.length} images × {settings.duration}s
+            {musicFiles && musicFiles.length > 0 ? (
+              <>
+                Music length: {Math.floor(musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0) / 60)}m {Math.floor(musicFiles.reduce((sum, music) => sum + (music.customDuration || music.duration), 0) % 60)}s
+                <br />
+                {images.length} images × {settings.duration}s
+              </>
+            ) : (
+              `${images.length} images × ${settings.duration}s`
+            )}
           </div>
         </div>
       </div>

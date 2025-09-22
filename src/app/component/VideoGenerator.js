@@ -6,7 +6,7 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 export default function VideoGenerator({
   images,
   settings,
-  musicFile,
+  musicFiles,
   subtitle,
   imageSubtitles,
   isGenerating,
@@ -42,89 +42,110 @@ export default function VideoGenerator({
       canvas.height = videoHeight;
       console.log(`📐 Canvas 설정 완료: ${videoWidth}x${videoHeight}`);
 
-      // 오디오 컨텍스트 생성 (음악용)
-      let audioContext = null;
-      let audioBuffer = null;
-      let audioSource = null;
+        // 오디오 컨텍스트 생성 (음악용)
+        let audioContext = null;
+        let audioBuffers = [];
+        let audioSources = [];
 
-      if (musicFile) {
-        console.log("🎵 음악 파일 처리 시작...");
-        try {
-          audioContext = new (window.AudioContext ||
-            window.webkitAudioContext)();
-          console.log("🎵 AudioContext 생성 완료");
+        if (musicFiles && musicFiles.length > 0) {
+          console.log(`🎵 ${musicFiles.length}개 음악 파일 처리 시작...`);
+          try {
+            audioContext = new (window.AudioContext ||
+              window.webkitAudioContext)();
+            console.log("🎵 AudioContext 생성 완료");
 
-          const arrayBuffer = await musicFile.file.arrayBuffer();
-          console.log(
-            `🎵 음악 파일 로드 완료: ${arrayBuffer.byteLength} bytes`
-          );
+            // 모든 음악 파일 처리
+            for (let i = 0; i < musicFiles.length; i++) {
+              const musicFile = musicFiles[i];
+              console.log(`🎵 음악 ${i + 1} 처리 중: ${musicFile.name}`);
+              
+              const arrayBuffer = await musicFile.file.arrayBuffer();
+              console.log(
+                `🎵 음악 파일 ${i + 1} 로드 완료: ${arrayBuffer.byteLength} bytes`
+              );
 
-          audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          console.log(
-            `🎵 오디오 디코딩 완료: ${audioBuffer.duration}초, ${audioBuffer.sampleRate}Hz`
-          );
+              let audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+              console.log(
+                `🎵 오디오 디코딩 완료: ${audioBuffer.duration}초, ${audioBuffer.sampleRate}Hz`
+              );
 
-          // 사용자 지정 길이가 있으면 오디오를 자르기
-          if (
-            musicFile.customDuration &&
-            musicFile.customDuration < audioBuffer.duration
-          ) {
-            console.log(
-              `🎵 오디오 길이 조정: ${audioBuffer.duration}초 → ${musicFile.customDuration}초`
-            );
-            const newLength = musicFile.customDuration * audioBuffer.sampleRate;
-            const newBuffer = audioContext.createBuffer(
-              audioBuffer.numberOfChannels,
-              newLength,
-              audioBuffer.sampleRate
-            );
+              // 사용자 지정 길이가 있으면 오디오를 자르기
+              if (
+                musicFile.customDuration &&
+                musicFile.customDuration < audioBuffer.duration
+              ) {
+                console.log(
+                  `🎵 오디오 길이 조정: ${audioBuffer.duration}초 → ${musicFile.customDuration}초`
+                );
+                const newLength = musicFile.customDuration * audioBuffer.sampleRate;
+                const newBuffer = audioContext.createBuffer(
+                  audioBuffer.numberOfChannels,
+                  newLength,
+                  audioBuffer.sampleRate
+                );
 
-            for (
-              let channel = 0;
-              channel < audioBuffer.numberOfChannels;
-              channel++
-            ) {
-              const originalData = audioBuffer.getChannelData(channel);
-              const newData = newBuffer.getChannelData(channel);
-              for (let i = 0; i < newLength; i++) {
-                newData[i] = originalData[i];
+                for (
+                  let channel = 0;
+                  channel < audioBuffer.numberOfChannels;
+                  channel++
+                ) {
+                  const originalData = audioBuffer.getChannelData(channel);
+                  const newData = newBuffer.getChannelData(channel);
+                  for (let j = 0; j < newLength; j++) {
+                    newData[j] = originalData[j];
+                  }
+                }
+                audioBuffer = newBuffer;
               }
+              
+              audioBuffers.push(audioBuffer);
             }
-            audioBuffer = newBuffer;
+            
+            console.log(`🎵 총 ${audioBuffers.length}개 음악 파일 처리 완료`);
+          } catch (audioError) {
+            console.warn("🎵 Audio processing failed:", audioError);
           }
-        } catch (audioError) {
-          console.warn("🎵 Audio processing failed:", audioError);
+        } else {
+          console.log("🎵 음악 파일 없음 - 오디오 없이 진행");
         }
-      } else {
-        console.log("🎵 음악 파일 없음 - 오디오 없이 진행");
-      }
 
       // MediaRecorder 설정 (오디오 포함)
       console.log("📹 Canvas 스트림 생성 중...");
       const canvasStream = canvas.captureStream(30); // 30fps
       console.log("📹 Canvas 스트림 생성 완료 (30fps)");
 
-      // 오디오 트랙 추가
-      if (audioContext && audioBuffer) {
-        console.log("🎵 오디오 스트림 설정 중...");
-        const audioDestination = audioContext.createMediaStreamDestination();
-        audioSource = audioContext.createBufferSource();
-        audioSource.buffer = audioBuffer;
-        audioSource.connect(audioDestination);
-        console.log("🎵 오디오 소스 연결 완료");
+        // 오디오 트랙 추가
+        if (audioContext && audioBuffers.length > 0) {
+          console.log("🎵 오디오 스트림 설정 중...");
+          const audioDestination = audioContext.createMediaStreamDestination();
+          
+          // 모든 음악을 순차적으로 연결
+          let currentTime = 0;
+          for (let i = 0; i < audioBuffers.length; i++) {
+            const audioSource = audioContext.createBufferSource();
+            audioSource.buffer = audioBuffers[i];
+            audioSource.connect(audioDestination);
+            audioSource.start(currentTime);
+            audioSources.push(audioSource);
+            
+            currentTime += audioBuffers[i].duration;
+            console.log(`🎵 음악 ${i + 1} 연결 완료, 시작 시간: ${currentTime - audioBuffers[i].duration}초`);
+          }
+          
+          console.log("🎵 모든 오디오 소스 연결 완료");
 
-        // 오디오와 비디오 스트림 결합
-        const combinedStream = new MediaStream([
-          ...canvasStream.getVideoTracks(),
-          ...audioDestination.stream.getAudioTracks(),
-        ]);
-        console.log("🎵 비디오+오디오 스트림 결합 완료");
+          // 오디오와 비디오 스트림 결합
+          const combinedStream = new MediaStream([
+            ...canvasStream.getVideoTracks(),
+            ...audioDestination.stream.getAudioTracks(),
+          ]);
+          console.log("🎵 비디오+오디오 스트림 결합 완료");
 
-        var stream = combinedStream;
-      } else {
-        console.log("📹 비디오 전용 스트림 사용");
-        var stream = canvasStream;
-      }
+          var stream = combinedStream;
+        } else {
+          console.log("📹 비디오 전용 스트림 사용");
+          var stream = canvasStream;
+        }
 
       // 브라우저 호환성을 위한 MIME 타입 선택
       console.log("🔧 MediaRecorder MIME 타입 확인 중...");
@@ -233,11 +254,10 @@ export default function VideoGenerator({
         }개 성공`
       );
 
-      // 음악 재생 시작
-      if (audioSource) {
-        console.log("🎵 음악 재생 시작...");
-        audioSource.start(0);
-      }
+        // 음악 재생 시작 (이미 위에서 시작됨)
+        if (audioSources.length > 0) {
+          console.log(`🎵 ${audioSources.length}개 음악 재생 시작...`);
+        }
 
       console.log("🎨 영상 렌더링 시작...");
       setGenerationStatus("영상을 렌더링하고 있습니다...");
@@ -354,14 +374,21 @@ export default function VideoGenerator({
           // 영상 녹화 종료
           console.log("🛑 렌더링 완료, 녹화 종료 준비 중...");
           setGenerationStatus("영상 녹화를 완료하고 있습니다...");
-          setTimeout(() => {
-            console.log("🛑 MediaRecorder 정지 명령 실행");
-            mediaRecorder.stop();
-            if (audioSource) {
-              console.log("🎵 오디오 소스 정지");
-              audioSource.stop();
-            }
-          }, 1000); // 1초 추가 대기
+            setTimeout(() => {
+              console.log("🛑 MediaRecorder 정지 명령 실행");
+              mediaRecorder.stop();
+              if (audioSources.length > 0) {
+                console.log(`🎵 ${audioSources.length}개 오디오 소스 정지`);
+                audioSources.forEach((source, index) => {
+                  try {
+                    source.stop();
+                    console.log(`🎵 오디오 소스 ${index + 1} 정지 완료`);
+                  } catch (e) {
+                    console.warn(`🎵 오디오 소스 ${index + 1} 정지 실패:`, e);
+                  }
+                });
+              }
+            }, 1000); // 1초 추가 대기
         }
       };
 

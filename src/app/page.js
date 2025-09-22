@@ -17,7 +17,7 @@ export default function Home() {
     duration: 3,
     transition: "fade",
   });
-  const [musicFile, setMusicFile] = useState(null);
+  const [musicFiles, setMusicFiles] = useState([]);
   const [subtitle, setSubtitle] = useState("");
   const [imageSubtitles, setImageSubtitles] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -128,8 +128,8 @@ export default function Home() {
 
           {currentStep === 2 && (
             <MusicUpload
-              musicFile={musicFile}
-              setMusicFile={setMusicFile}
+              musicFiles={musicFiles}
+              setMusicFiles={setMusicFiles}
               onNext={() => handleStepChange(3)}
               onPrev={() => handleStepChange(1)}
             />
@@ -140,7 +140,7 @@ export default function Home() {
               settings={imageSettings}
               setSettings={setImageSettings}
               images={images}
-              musicFile={musicFile}
+              musicFiles={musicFiles}
               onNext={() => handleStepChange(4)}
               onPrev={() => handleStepChange(2)}
             />
@@ -162,7 +162,7 @@ export default function Home() {
             <VideoPreview
               images={images}
               settings={imageSettings}
-              musicFile={musicFile}
+              musicFiles={musicFiles}
               subtitle={subtitle}
               onNext={() => handleStepChange(6)}
               onPrev={() => handleStepChange(4)}
@@ -173,7 +173,7 @@ export default function Home() {
             <VideoGenerator
               images={images}
               settings={imageSettings}
-              musicFile={musicFile}
+              musicFiles={musicFiles}
               subtitle={subtitle}
               imageSubtitles={imageSubtitles}
               isGenerating={isGenerating}

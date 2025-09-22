@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 export default function VideoPreview({
   images,
   settings,
-  musicFile,
+  musicFiles,
   subtitle,
   onNext,
   onPrev,
@@ -211,7 +211,7 @@ export default function VideoPreview({
               <span className="font-medium">Music</span>
             </div>
             <p className="text-lg font-bold text-gray-800 mt-1">
-              {musicFile ? "Yes" : "No"}
+              {musicFiles && musicFiles.length > 0 ? `${musicFiles.length} files` : "No"}
             </p>
           </div>
         </div>
