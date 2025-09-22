@@ -1,12 +1,25 @@
 "use client";
+import React from "react";
 
 export default function ImageSettings({
   settings,
   setSettings,
   images,
+  musicFile,
   onNext,
   onPrev,
 }) {
+  // 음악 파일이 있고 자동 분배가 아직 안된 경우 자동으로 분배
+  React.useEffect(() => {
+    if (musicFile && settings.duration === 5) {
+      const totalDuration = musicFile.customDuration || musicFile.duration;
+      const durationPerImage = Math.floor(totalDuration / images.length);
+      setSettings({
+        ...settings,
+        duration: Math.max(1, Math.min(30, durationPerImage)),
+      });
+    }
+  }, [musicFile, images.length]);
   const handleDurationChange = (e) => {
     setSettings({
       ...settings,
@@ -14,11 +27,32 @@ export default function ImageSettings({
     });
   };
 
+  const handleDurationInputChange = (e) => {
+    const value = parseInt(e.target.value);
+    if (value >= 1 && value <= 30) {
+      setSettings({
+        ...settings,
+        duration: value,
+      });
+    }
+  };
+
   const handleTransitionChange = (e) => {
     setSettings({
       ...settings,
       transition: e.target.value,
     });
+  };
+
+  const handleAutoDuration = () => {
+    if (musicFile) {
+      const totalDuration = musicFile.customDuration || musicFile.duration;
+      const durationPerImage = Math.floor(totalDuration / images.length);
+      setSettings({
+        ...settings,
+        duration: Math.max(1, Math.min(30, durationPerImage)),
+      });
+    }
   };
 
   const getTotalDuration = () => {
@@ -64,11 +98,13 @@ export default function ImageSettings({
             <i className="fas fa-clock mr-1"></i>
             Display Duration per Image
           </label>
-          <div className="flex items-center space-x-4">
+
+          {/* 슬라이더 */}
+          <div className="flex items-center space-x-4 mb-3">
             <input
               type="range"
               min="1"
-              max="10"
+              max="30"
               value={settings.duration}
               onChange={handleDurationChange}
               className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
@@ -77,9 +113,38 @@ export default function ImageSettings({
               {settings.duration}s
             </span>
           </div>
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+
+          {/* 직접 입력 */}
+          <div className="flex items-center space-x-2 mb-3">
+            <label className="text-sm text-gray-600">Direct input:</label>
+            <input
+              type="number"
+              min="1"
+              max="30"
+              value={settings.duration}
+              onChange={handleDurationInputChange}
+              className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+            />
+            <span className="text-sm text-gray-600">seconds</span>
+          </div>
+
+          {/* 자동 분배 버튼 */}
+          {musicFile && musicFile.duration && (
+            <div className="mb-3">
+              <button
+                onClick={handleAutoDuration}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm"
+              >
+                <i className="fas fa-magic mr-1"></i>
+                Auto-distribute by music length (
+                {Math.floor(musicFile.customDuration || musicFile.duration)}s)
+              </button>
+            </div>
+          )}
+
+          <div className="flex justify-between text-xs text-gray-500">
             <span>1s</span>
-            <span>10s</span>
+            <span>30s</span>
           </div>
         </div>
 
@@ -95,8 +160,6 @@ export default function ImageSettings({
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
           >
             <option value="fade">Fade</option>
-            <option value="slide">Slide</option>
-            <option value="zoom">Zoom</option>
             <option value="none">None</option>
           </select>
         </div>

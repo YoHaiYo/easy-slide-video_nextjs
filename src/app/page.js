@@ -23,8 +23,8 @@ export default function Home() {
 
   const steps = [
     { id: 1, title: "Upload Images", icon: "fas fa-images" },
-    { id: 2, title: "Settings", icon: "fas fa-cog" },
-    { id: 3, title: "Add Music", icon: "fas fa-music" },
+    { id: 2, title: "Add Music", icon: "fas fa-music" },
+    { id: 3, title: "Settings", icon: "fas fa-cog" },
     { id: 4, title: "Subtitles", icon: "fas fa-font" },
     { id: 5, title: "Preview", icon: "fas fa-play" },
     { id: 6, title: "Generate", icon: "fas fa-download" },
@@ -126,19 +126,20 @@ export default function Home() {
           )}
 
           {currentStep === 2 && (
-            <ImageSettings
-              settings={imageSettings}
-              setSettings={setImageSettings}
-              images={images}
+            <MusicUpload
+              musicFile={musicFile}
+              setMusicFile={setMusicFile}
               onNext={() => handleStepChange(3)}
               onPrev={() => handleStepChange(1)}
             />
           )}
 
           {currentStep === 3 && (
-            <MusicUpload
+            <ImageSettings
+              settings={imageSettings}
+              setSettings={setImageSettings}
+              images={images}
               musicFile={musicFile}
-              setMusicFile={setMusicFile}
               onNext={() => handleStepChange(4)}
               onPrev={() => handleStepChange(2)}
             />

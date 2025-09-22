@@ -62,6 +62,35 @@ export default function VideoGenerator({
           console.log(
             `🎵 오디오 디코딩 완료: ${audioBuffer.duration}초, ${audioBuffer.sampleRate}Hz`
           );
+
+          // 사용자 지정 길이가 있으면 오디오를 자르기
+          if (
+            musicFile.customDuration &&
+            musicFile.customDuration < audioBuffer.duration
+          ) {
+            console.log(
+              `🎵 오디오 길이 조정: ${audioBuffer.duration}초 → ${musicFile.customDuration}초`
+            );
+            const newLength = musicFile.customDuration * audioBuffer.sampleRate;
+            const newBuffer = audioContext.createBuffer(
+              audioBuffer.numberOfChannels,
+              newLength,
+              audioBuffer.sampleRate
+            );
+
+            for (
+              let channel = 0;
+              channel < audioBuffer.numberOfChannels;
+              channel++
+            ) {
+              const originalData = audioBuffer.getChannelData(channel);
+              const newData = newBuffer.getChannelData(channel);
+              for (let i = 0; i < newLength; i++) {
+                newData[i] = originalData[i];
+              }
+            }
+            audioBuffer = newBuffer;
+          }
         } catch (audioError) {
           console.warn("🎵 Audio processing failed:", audioError);
         }
@@ -155,8 +184,8 @@ export default function VideoGenerator({
         }
 
         setGenerationProgress(100);
-        setIsInitializing(false);
         console.log("🎉 영상 생성 완전 완료!");
+        // 로딩 UI는 generatedVideoUrl이 설정된 후에만 제거
       };
 
       // 영상 녹화 시작
@@ -527,98 +556,70 @@ export default function VideoGenerator({
             )}
           </div>
 
-          {/* 생성 진행률 */}
-          {isGenerating && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="inline-flex items-center space-x-2 text-green-600 mb-2">
-                  <i className="fas fa-cog fa-spin text-xl"></i>
-                  <span className="font-medium text-lg">영상 생성 중...</span>
-                </div>
-                <p className="text-sm text-gray-600">{generationStatus}</p>
+          {/* 생성 버튼 */}
+          <div className="text-center">
+            <button
+              onClick={handleGenerateVideo}
+              disabled={images.length === 0 || isGenerating}
+              className="bg-green-500 text-white px-8 py-4 rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 text-lg font-medium"
+            >
+              {isGenerating ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  Generating Video...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-video mr-2"></i>
+                  Generate Video
+                </>
+              )}
+            </button>
 
-                {/* 초기화 중일 때 추가 로딩 표시 */}
-                {isInitializing && (
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center justify-center space-x-2 text-blue-600">
-                      <i className="fas fa-spinner fa-spin"></i>
-                      <span className="text-sm font-medium">
-                        시스템 초기화 중...
-                      </span>
-                    </div>
-                    <p className="text-xs text-blue-500 mt-1">
-                      Canvas, 오디오, 이미지 로딩 중입니다
-                    </p>
-                  </div>
+            {/* 진행 상태 표시 */}
+            {isGenerating && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-center space-x-2 text-blue-600 mb-2">
+                  <i className="fas fa-cog fa-spin"></i>
+                  <span className="font-medium">Processing Video</span>
+                </div>
+                <p className="text-sm text-blue-600 text-center">
+                  {generationStatus || "Initializing video generation..."}
+                </p>
+                {conversionProgress > 0 && (
+                  <p className="text-xs text-blue-500 text-center mt-1">
+                    Converting to MP4 format...
+                  </p>
                 )}
               </div>
+            )}
 
-              {/* 메인 진행률 바 */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>전체 진행률</span>
-                  <span>{Math.round(generationProgress)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-4">
-                  <div
-                    className="bg-green-500 h-4 rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${generationProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* MP4 변환 진행률 (변환 중일 때만 표시) */}
-              {conversionProgress > 0 && conversionProgress < 100 && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>MP4 변환</span>
-                    <span>{Math.round(conversionProgress)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className="bg-blue-500 h-3 rounded-full transition-all duration-300 ease-out"
-                      style={{ width: `${conversionProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-
-              {/* 예상 시간 표시 */}
-              <div className="text-center text-xs text-gray-500">
-                {generationProgress < 50 &&
-                  "영상 렌더링 중... 잠시만 기다려주세요."}
-                {generationProgress >= 50 &&
-                  generationProgress < 100 &&
-                  "거의 완료되었습니다!"}
-                {conversionProgress > 0 &&
-                  conversionProgress < 100 &&
-                  "MP4 변환 중..."}
-              </div>
-            </div>
-          )}
-
-          {/* 생성 버튼 */}
-          {!isGenerating && (
-            <div className="text-center">
-              <button
-                onClick={handleGenerateVideo}
-                disabled={images.length === 0}
-                className="bg-green-500 text-white px-8 py-4 rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200 text-lg font-medium"
-              >
-                <i className="fas fa-video mr-2"></i>
-                Generate Video
-              </button>
-              <p className="text-sm text-gray-500 mt-2">
-                Video generation is processed in the browser
-              </p>
-              {!isFFmpegLoaded && (
-                <p className="text-xs text-blue-600 mt-1">
-                  <i className="fas fa-info-circle mr-1"></i>
-                  First generation may take longer due to FFmpeg loading
+            {!isGenerating && (
+              <>
+                <p className="text-sm text-gray-500 mt-2">
+                  Video generation is processed in the browser
                 </p>
-              )}
-            </div>
-          )}
+                {!isFFmpegLoaded && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    <i className="fas fa-info-circle mr-1"></i>
+                    First generation may take longer due to FFmpeg loading
+                  </p>
+                )}
+
+                {/* 경고 문구 */}
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center space-x-2 text-yellow-700">
+                    <i className="fas fa-exclamation-triangle"></i>
+                    <span className="text-sm font-medium">Important</span>
+                  </div>
+                  <p className="text-xs text-yellow-600 mt-1">
+                    Do not close the browser or refresh the page during video
+                    generation.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       ) : (
         /* 생성 완료 상태 */

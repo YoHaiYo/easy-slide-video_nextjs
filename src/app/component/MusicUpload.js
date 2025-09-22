@@ -7,16 +7,35 @@ export default function MusicUpload({
   onNext,
   onPrev,
 }) {
+  const [customDuration, setCustomDuration] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   const audioRef = useRef(null);
 
   const handleFileSelect = (file) => {
     if (file && file.type.startsWith("audio/")) {
+      const audio = new Audio();
+      audio.onloadedmetadata = () => {
+        setMusicFile({
+          file,
+          name: file.name,
+          preview: URL.createObjectURL(file),
+          duration: audio.duration,
+          customDuration: audio.duration, // 기본값은 원본 길이
+        });
+        setCustomDuration(audio.duration);
+      };
+      audio.src = URL.createObjectURL(file);
+    }
+  };
+
+  const handleDurationChange = (e) => {
+    const newDuration = parseFloat(e.target.value);
+    setCustomDuration(newDuration);
+    if (musicFile) {
       setMusicFile({
-        file,
-        name: file.name,
-        preview: URL.createObjectURL(file),
+        ...musicFile,
+        customDuration: newDuration,
       });
     }
   };
@@ -112,6 +131,37 @@ export default function MusicUpload({
               >
                 <i className="fas fa-trash"></i>
               </button>
+            </div>
+
+            {/* 음악 길이 조절 */}
+            <div className="mt-4 border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <i className="fas fa-clock mr-1"></i>
+                Music Duration
+              </label>
+              <div className="flex items-center space-x-4">
+                <input
+                  type="range"
+                  min="10"
+                  max={Math.floor(musicFile.duration)}
+                  step="1"
+                  value={customDuration || musicFile.duration}
+                  onChange={handleDurationChange}
+                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="text-center">
+                  <span className="text-lg font-semibold text-green-600">
+                    {Math.floor(customDuration || musicFile.duration)}s
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    Original: {Math.floor(musicFile.duration)}s
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>10s</span>
+                <span>{Math.floor(musicFile.duration)}s</span>
+              </div>
             </div>
 
             {/* 음악 재생 컨트롤 */}
