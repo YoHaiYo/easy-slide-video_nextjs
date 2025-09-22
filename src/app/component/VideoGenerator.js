@@ -574,7 +574,7 @@ export default function VideoGenerator({
               </div>
               <div className="flex items-center space-x-2">
                 <i className="fas fa-music text-green-500"></i>
-                <span>Music: {musicFile ? "Yes" : "No"}</span>
+                <span>Music: {musicFiles && musicFiles.length > 0 ? `${musicFiles.length} files` : "No"}</span>
               </div>
             </div>
             {subtitle && (
