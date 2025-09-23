@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 export default function VideoPreview({
   images,
@@ -77,11 +78,12 @@ export default function VideoPreview({
           {images.length > 0 ? (
             <div className="relative w-full h-full">
               {images.map((image, index) => (
-                <img
+                <Image
                   key={image.id}
                   src={image.preview}
                   alt={image.name}
-                  className={`absolute inset-0 w-full h-full object-cover ${
+                  fill
+                  className={`object-cover ${
                     index === currentImageIndex ? "opacity-100" : "opacity-0"
                   } ${getTransitionClass()}`}
                   style={{

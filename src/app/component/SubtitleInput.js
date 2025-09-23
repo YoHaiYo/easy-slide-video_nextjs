@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 
 export default function SubtitleInput({
   subtitle,
@@ -51,11 +52,12 @@ export default function SubtitleInput({
               className="border border-gray-200 rounded-lg p-4"
             >
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200">
-                  <img
+                <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 relative">
+                  <Image
                     src={image.preview}
                     alt={image.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 </div>
                 <div>
@@ -208,11 +210,12 @@ export default function SubtitleInput({
                   className="border border-gray-200 rounded-lg p-4"
                 >
                   <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                      <img
+                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 relative">
+                      <Image
                         src={image.preview}
                         alt={image.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     </div>
                     <span className="text-sm font-medium text-gray-600">
@@ -266,7 +269,7 @@ export default function SubtitleInput({
               </p>
               <p className="text-xs text-blue-600 mt-1">
                 You can create a slideshow with images and music only if you
-                don't add subtitles.
+                don&apos;t add subtitles.
               </p>
             </div>
           </div>
