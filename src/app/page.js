@@ -66,19 +66,20 @@ function HomeContent() {
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex justify-center">
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2 justify-center">
               {steps.map((step) => (
                 <button
                   key={step.id}
                   onClick={() => handleStepChange(step.id)}
-                  className={`flex items-center px-4 py-2 rounded-full transition-all duration-300 ${
+                  className={`flex items-center px-2 sm:px-4 py-2 rounded-full transition-all duration-300 text-xs sm:text-sm ${
                     currentStep >= step.id
                       ? "bg-green-500 text-white"
                       : "bg-gray-200 text-gray-500 hover:bg-gray-300"
                   }`}
                 >
-                  <i className={`${step.icon} mr-2`}></i>
-                  <span className="text-sm font-medium">{step.title}</span>
+                  <i className={`${step.icon} mr-1 sm:mr-2`}></i>
+                  <span className="font-medium hidden sm:inline">{step.title}</span>
+                  <span className="font-medium sm:hidden">{step.id}</span>
                 </button>
               ))}
             </div>
