@@ -26,7 +26,7 @@ export default function VideoGenerator({
     setIsGenerating(true);
     setIsInitializing(true);
     setGenerationProgress(0);
-    setGenerationStatus("영상 생성을 시작합니다...");
+    setGenerationStatus("Starting video generation...");
     setConversionProgress(0);
 
     try {
@@ -181,16 +181,27 @@ export default function VideoGenerator({
         console.log("🛑 MediaRecorder 정지됨");
         const webmBlob = new Blob(chunks, { type: "video/webm" });
         console.log(`📦 WebM Blob 생성 완료: ${webmBlob.size} bytes`);
-        setGenerationStatus("WebM 영상을 생성했습니다. MP4로 변환 중...");
+        setGenerationStatus("WebM video created. Converting to MP4...");
 
         // WebM을 MP4로 변환
         try {
           console.log("🔄 MP4 변환 시작...");
           setConversionProgress(10);
+          setGenerationStatus("Converting to MP4 format...");
+          
+          // MP4 변환 과정에서 진행률 시뮬레이션
+          const conversionInterval = setInterval(() => {
+            setConversionProgress(prev => {
+              if (prev >= 90) return prev;
+              return prev + Math.random() * 10;
+            });
+          }, 500);
+          
           const mp4Blob = await convertWebMToMP4(webmBlob);
+          clearInterval(conversionInterval);
           setConversionProgress(100);
           console.log(`✅ MP4 변환 완료: ${mp4Blob.size} bytes`);
-          setGenerationStatus("MP4 변환이 완료되었습니다!");
+          setGenerationStatus("Video generation completed!");
           const url = URL.createObjectURL(mp4Blob);
           setGeneratedVideoUrl(url);
           setIsGenerating(false); // 영상 생성 완료
@@ -199,9 +210,8 @@ export default function VideoGenerator({
             "❌ MP4 conversion failed, using WebM:",
             conversionError
           );
-          setGenerationStatus(
-            "MP4 변환에 실패했습니다. WebM 형식으로 제공됩니다."
-          );
+          setConversionProgress(100);
+          setGenerationStatus("Video generation completed! (WebM format)");
           const url = URL.createObjectURL(webmBlob);
           setGeneratedVideoUrl(url);
           setIsGenerating(false); // 영상 생성 완료 (WebM)
@@ -215,12 +225,12 @@ export default function VideoGenerator({
 
       // 영상 녹화 시작
       console.log("▶️ 영상 녹화 시작...");
-      setGenerationStatus("영상 녹화를 시작합니다...");
+      setGenerationStatus("Starting video recording...");
       mediaRecorder.start();
 
       // 이미지 로드 및 렌더링
       console.log("🖼️ 이미지 로딩 시작...");
-      setGenerationStatus("이미지를 로드하고 있습니다...");
+      setGenerationStatus("Loading images...");
       const totalDuration = images.length * settings.duration;
       const frameRate = 30;
       const totalFrames = totalDuration * frameRate;
@@ -262,7 +272,7 @@ export default function VideoGenerator({
         }
 
       console.log("🎨 영상 렌더링 시작...");
-      setGenerationStatus("영상을 렌더링하고 있습니다...");
+      setGenerationStatus("Rendering video...");
       setIsInitializing(false); // 초기화 완료
 
       const renderFrame = () => {
@@ -375,7 +385,7 @@ export default function VideoGenerator({
         } else {
           // 영상 녹화 종료
           console.log("🛑 렌더링 완료, 녹화 종료 준비 중...");
-          setGenerationStatus("영상 녹화를 완료하고 있습니다...");
+          setGenerationStatus("Finalizing video recording...");
             setTimeout(() => {
               console.log("🛑 MediaRecorder 정지 명령 실행");
               mediaRecorder.stop();
@@ -398,19 +408,19 @@ export default function VideoGenerator({
       renderFrame();
     } catch (error) {
       console.error("Video generation error:", error);
-      setGenerationStatus("영상 생성 중 오류가 발생했습니다.");
-
+      setGenerationStatus("An error occurred during video generation.");
+      
       // 사용자에게 더 친화적인 에러 메시지 표시
-      let errorMessage = "영상 생성에 실패했습니다. ";
+      let errorMessage = "Video generation failed. ";
       if (error.name === "NotSupportedError") {
-        errorMessage += "브라우저가 영상 녹화를 지원하지 않습니다.";
+        errorMessage += "Your browser does not support video recording.";
       } else if (error.name === "NotAllowedError") {
-        errorMessage += "마이크/카메라 권한이 필요합니다.";
+        errorMessage += "Microphone/camera permission is required.";
       } else if (error.message.includes("FFmpeg")) {
         errorMessage +=
-          "FFmpeg 로딩에 실패했습니다. 페이지를 새로고침해주세요.";
+          "Failed to load FFmpeg. Please refresh the page.";
       } else {
-        errorMessage += "잠시 후 다시 시도해주세요.";
+        errorMessage += "Please try again later.";
       }
 
       alert(errorMessage);
@@ -434,7 +444,7 @@ export default function VideoGenerator({
     const ffmpegInstance = new FFmpeg();
 
     try {
-      setGenerationStatus("FFmpeg를 로딩하고 있습니다...");
+      setGenerationStatus("Loading FFmpeg...");
       const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
       console.log(`🔧 FFmpeg 코어 다운로드 중: ${baseURL}`);
 
@@ -452,12 +462,12 @@ export default function VideoGenerator({
       console.log("✅ FFmpeg 로딩 완료");
       setFFmpeg(ffmpegInstance);
       setIsFFmpegLoaded(true);
-      setGenerationStatus("FFmpeg 로딩이 완료되었습니다.");
+      setGenerationStatus("FFmpeg loaded successfully.");
       return ffmpegInstance;
     } catch (error) {
       console.error("❌ FFmpeg initialization failed:", error);
-      setGenerationStatus("FFmpeg 로딩에 실패했습니다.");
-      throw new Error("FFmpeg 로딩 실패: " + error.message);
+      setGenerationStatus("Failed to load FFmpeg.");
+      throw new Error("FFmpeg loading failed: " + error.message);
     }
   };
 
@@ -621,9 +631,18 @@ export default function VideoGenerator({
                   {generationStatus || "Initializing video generation..."}
                 </p>
                 {conversionProgress > 0 && (
-                  <p className="text-xs text-blue-500 text-center mt-1">
-                    Converting to MP4 format...
-                  </p>
+                  <div className="mt-3">
+                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                      <span>MP4 Conversion</span>
+                      <span>{Math.round(conversionProgress)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${conversionProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 )}
                 
                 {/* 진행률 바 */}
