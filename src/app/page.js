@@ -23,8 +23,8 @@ function HomeContent() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const steps = [
-    { id: 1, title: "Upload Images", icon: "fas fa-images" },
-    { id: 2, title: "Add Music", icon: "fas fa-music" },
+    { id: 1, title: "Images", icon: "fas fa-images" },
+    { id: 2, title: "Music", icon: "fas fa-music" },
     { id: 3, title: "Settings", icon: "fas fa-cog" },
     { id: 4, title: "Subtitles", icon: "fas fa-font" },
     { id: 5, title: "Preview", icon: "fas fa-play" },
@@ -63,23 +63,38 @@ function HomeContent() {
       </div>
 
       {/* 진행 단계 표시 */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-white shadow-sm pt-2 md:pt-3">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex justify-center">
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-5 md:gap-3 justify-center">
               {steps.map((step) => (
                 <button
                   key={step.id}
                   onClick={() => handleStepChange(step.id)}
-                  className={`flex items-center px-2 sm:px-4 py-2 rounded-full transition-all duration-300 text-xs sm:text-sm ${
+                  className={`relative flex items-center px-2 sm:px-4 py-2 rounded-full transition-all duration-300 text-xs sm:text-sm ${
                     currentStep >= step.id
                       ? "bg-green-500 text-white"
                       : "bg-gray-200 text-gray-500 hover:bg-gray-300"
                   }`}
                 >
+                  {/* STEP 뱃지 - 좌측 상단에 absolute로 세련되게 표시 */}
+                  <span
+                    className={`absolute -top-4 -left-2 sm:-top-4 sm:-left-2 bg-white border-2 ${
+                      currentStep >= step.id
+                        ? "border-green-500 text-green-600"
+                        : "border-gray-300 text-gray-400"
+                    } rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-bold shadow-sm`}
+                    style={{
+                      minWidth: "2.2rem",
+                      textAlign: "center",
+                      letterSpacing: "0.02em",
+                      zIndex: 2,
+                    }}
+                  >
+                    STEP{step.id}
+                  </span>
                   <i className={`${step.icon} mr-1 sm:mr-2`}></i>
-                  <span className="font-medium hidden sm:inline">{step.title}</span>
-                  <span className="font-medium sm:hidden">{step.id}</span>
+                  <span className="font-medium">{step.title}</span>
                 </button>
               ))}
             </div>

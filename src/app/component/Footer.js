@@ -4,9 +4,9 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4">
         <p className="mb-2">
           <i className="fas fa-video mr-1 text-green-500"></i>
-          Easy Slide Video - 사진과 음악으로 간단하게 영상 만들기
+          Easy PlayList Maker - Make videos the easiest with only images and music.
         </p>
-        <p>© 2025 Easy Slide Video. All rights reserved.</p>
+        <p>© 2025 Easy PlayList Maker. All rights reserved.</p>
       </div>
     </footer>
   );

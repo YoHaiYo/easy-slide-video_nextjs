@@ -193,11 +193,11 @@ export default function MusicUpload({
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
-        <i className="fas fa-music text-4xl text-gray-400 mb-4"></i>
+        <i className="fas fa-music text-4xl text-gray-800 mb-4"></i>
         <p className="text-gray-600 mb-2">
           Drag and drop music files here or click to upload
         </p>
-        <p className="text-sm text-gray-500">Supports MP3, WAV, M4A files</p>
+        <p className="text-sm text-gray-700">Supports MP3, WAV, M4A files</p>
         <input
           ref={fileInputRef}
           type="file"

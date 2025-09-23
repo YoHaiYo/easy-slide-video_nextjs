@@ -89,10 +89,10 @@ export default function ImageUpload({ images, setImages, onNext }) {
         onClick={() => fileInputRef.current?.click()}
       >
         <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-        <p className="text-gray-600 mb-2">
+        <p className="text-gray-800 mb-2">
           Drag and drop images here or click to upload
         </p>
-        <p className="text-sm text-gray-500">Supports JPG, PNG, GIF files</p>
+        <p className="text-sm text-gray-700">Supports JPG, PNG, GIF files</p>
         <input
           ref={fileInputRef}
           type="file"
