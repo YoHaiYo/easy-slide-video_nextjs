@@ -53,10 +53,10 @@ export default function Home() {
           <div className="text-center">
             <h1 className="text-4xl font-bold text-green-600 mb-2">
               <i className="fas fa-video mr-3"></i>
-              Easy Slide Video
+              Easy PlayList Maker
             </h1>
             <p className="text-gray-600">
-              Create beautiful slideshow videos from photos and music
+            Make videos the easiest with only images and music.
             </p>
           </div>
         </div>

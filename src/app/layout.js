@@ -3,8 +3,8 @@ import Navbar from "./component/Navbar";
 import "./globals.css";
 
 export const metadata = {
-  title: "Easy Slide Video",
-  description: "사진과 음악으로 간단하게 슬라이드쇼 영상 만들기",
+  title: "Easy PlayList Maker",
+  description: "Easy PlayList Maker",
 };
 
 export default function RootLayout({ children }) {
