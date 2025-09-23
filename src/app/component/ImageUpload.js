@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import Image from "next/image";
 
 export default function ImageUpload({ images, setImages, onNext }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -114,10 +115,12 @@ export default function ImageUpload({ images, setImages, onNext }) {
                 key={image.id}
                 className="flex items-center p-3 bg-gray-50 rounded-lg border"
               >
-                <img
+                <Image
                   src={image.preview}
                   alt={image.name}
-                  className="w-12 h-12 object-cover rounded"
+                  width={48}
+                  height={48}
+                  className="object-cover rounded"
                 />
                 <div className="flex-1 ml-3">
                   <p className="text-sm font-medium text-gray-800 truncate">

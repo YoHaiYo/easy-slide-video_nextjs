@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import Image from "next/image";
 
 export default function ImageSettings({
   settings,
@@ -22,7 +23,7 @@ export default function ImageSettings({
         duration: Math.max(1, Math.round(durationPerImage)),
       });
     }
-  }, [musicFiles, images.length]);
+  }, [musicFiles, images.length, setSettings, settings]);
   const handleDurationChange = (e) => {
     setSettings({
       ...settings,
@@ -90,10 +91,11 @@ export default function ImageSettings({
               key={image.id}
               className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200"
             >
-              <img
+              <Image
                 src={image.preview}
                 alt={image.name}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
               <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded">
                 {index + 1}

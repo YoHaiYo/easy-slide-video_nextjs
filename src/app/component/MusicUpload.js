@@ -327,7 +327,7 @@ export default function MusicUpload({
                 Continue without music
               </p>
               <p className="text-xs text-blue-600 mt-1">
-                You can create a slideshow with images only if you don't add music.
+                You can create a slideshow with images only if you don&apos;t add music.
               </p>
             </div>
           </div>
