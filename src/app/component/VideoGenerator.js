@@ -271,6 +271,19 @@ export default function VideoGenerator({
       console.log(
         `📊 영상 정보: ${images.length}장, ${totalDuration}초, ${totalFrames}프레임`
       );
+      console.log(
+        `📊 이미지당 설정: ${settings.duration}초, 프레임레이트: ${frameRate}fps`
+      );
+      console.log(
+        `📊 이미지당 프레임 수: ${Math.ceil(
+          settings.duration * frameRate
+        )}프레임`
+      );
+      console.log(
+        `📊 실제 총 프레임 수: ${
+          images.length * Math.ceil(settings.duration * frameRate)
+        }프레임`
+      );
 
       let currentFrame = 0;
       let currentImageIndex = 0;
@@ -316,7 +329,7 @@ export default function VideoGenerator({
 
         if (loadedImages.length > 0 && loadedImages[currentImageIndex]) {
           const currentImage = loadedImages[currentImageIndex];
-          const imageDuration = settings.duration * frameRate;
+          const imageDuration = Math.ceil(settings.duration * frameRate); // 5fps 기준으로 계산, 올림 처리
 
           // 이미지 크기 계산 (비율 유지)
           const imageAspect = currentImage.width / currentImage.height;
@@ -375,12 +388,25 @@ export default function VideoGenerator({
           const currentSubtitle =
             imageSubtitles && imageSubtitles[currentImageIndex];
           if (currentSubtitle && currentSubtitle.trim()) {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            ctx.fillRect(0, videoHeight - 80, videoWidth, 80);
-
-            ctx.fillStyle = "#ffffff";
+            // 텍스트 크기 측정
             ctx.font = "bold 32px Arial";
             ctx.textAlign = "center";
+            const textMetrics = ctx.measureText(currentSubtitle);
+            const textWidth = textMetrics.width;
+            const textHeight = 32;
+
+            // 텍스트 배경만 그리기 (띠 배경 제거)
+            const padding = 10;
+            const bgX = (videoWidth - textWidth) / 2 - padding;
+            const bgY = videoHeight - 50 - textHeight;
+            const bgWidth = textWidth + padding * 2;
+            const bgHeight = textHeight + padding * 2;
+
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(bgX, bgY, bgWidth, bgHeight);
+
+            // 텍스트 그리기
+            ctx.fillStyle = "#ffffff";
             ctx.fillText(currentSubtitle, videoWidth / 2, videoHeight - 30);
           }
 
@@ -392,7 +418,7 @@ export default function VideoGenerator({
             console.log(
               `🔄 이미지 전환: ${currentImageIndex + 1} → ${
                 currentImageIndex + 2
-              }`
+              } (${frameInImage}/${imageDuration} 프레임)`
             );
             currentImageIndex = currentImageIndex + 1;
             imageStartFrame = currentFrame;
@@ -419,6 +445,14 @@ export default function VideoGenerator({
         } else {
           // 영상 녹화 종료
           console.log("🛑 렌더링 완료, 녹화 종료 준비 중...");
+          console.log(
+            `📊 최종 렌더링 정보: ${currentFrame}/${totalFrames} 프레임, ${images.length}장 이미지 처리 완료`
+          );
+          console.log(
+            `📊 예상 영상 길이: ${
+              totalFrames / frameRate
+            }초 (${totalFrames}프레임 ÷ ${frameRate}fps)`
+          );
           setGenerationStatus("Finalizing video recording...");
           setTimeout(() => {
             console.log("🛑 MediaRecorder 정지 명령 실행");

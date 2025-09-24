@@ -183,7 +183,7 @@ export default function ImageSettings({
           <select
             value={settings.transition}
             onChange={handleTransitionChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full p-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
           >
             <option value="fade">Fade</option>
             <option value="none">None</option>
